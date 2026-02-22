@@ -1,0 +1,256 @@
+{% extends 'base.html' %}
+{% block title %}Faculty Workload Distribution{% endblock %}
+{% block page_title %}Faculty Workload{% endblock %}
+
+{% block extra_css %}
+<style>
+  .wl-header {
+    background: linear-gradient(135deg, var(--ink), #1c1a14);
+    border-radius: 14px;
+    padding: 22px 28px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .wl-header h1 { font-family:'Playfair Display',serif; color:var(--gold); font-size:20px; margin:0 0 4px; }
+  .wl-header p  { color:rgba(255,255,255,0.5); font-size:12.5px; margin:0; }
+
+  .threshold-info {
+    display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;
+  }
+  .threshold-chip {
+    display: flex; align-items: center; gap: 8px;
+    background: white; border: 1px solid var(--rule);
+    border-radius: 8px; padding: 8px 14px; font-size: 12.5px;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  .chart-card {
+    background: white; border: 1px solid var(--rule);
+    border-radius: 14px; padding: 22px 24px; margin-bottom: 24px;
+  }
+  .chart-card h2 {
+    font-family:'Playfair Display',serif; font-size:15px;
+    margin-bottom: 4px;
+  }
+  .chart-card p { font-size: 12px; color:var(--slate); margin-bottom: 18px; }
+
+  .faculty-list { display: flex; flex-direction: column; gap: 10px; }
+  .faculty-row {
+    background: white; border: 1px solid var(--rule);
+    border-radius: 12px; padding: 16px 20px;
+    display: flex; align-items: center; gap: 16px;
+    transition: border-color 0.2s;
+  }
+  .faculty-row:hover { border-color: var(--gold); }
+  .faculty-row.overloaded { border-left: 3px solid var(--rust); }
+  .faculty-row.underload  { border-left: 3px solid #f59e0b; }
+  .faculty-row.normal     { border-left: 3px solid #16a34a; }
+
+  .faculty-avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), var(--rust));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600; color: white;
+    flex-shrink: 0; text-transform: uppercase;
+  }
+  .faculty-name  { font-weight: 600; font-size: 14px; }
+  .faculty-dept  { font-size: 12px; color: var(--slate); margin-top: 2px; }
+  .faculty-id    { font-family:'DM Mono',monospace; font-size:11px; color:var(--slate); }
+
+  .wl-bar-wrap { flex: 1; }
+  .wl-bar-labels {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: var(--slate); margin-bottom: 4px;
+  }
+  .wl-bar-bg { height: 8px; background: var(--parchment); border-radius: 4px; overflow: hidden; }
+  .wl-bar-fill { height: 100%; border-radius: 4px; transition: width 1s ease; }
+  .fill-over    { background: #dc2626; }
+  .fill-high    { background: var(--rust); }
+  .fill-normal  { background: var(--gold); }
+  .fill-low     { background: #16a34a; }
+
+  .wl-stats {
+    display: flex; gap: 20px; flex-shrink: 0;
+    font-size: 12.5px; text-align: center;
+  }
+  .wl-stat-item .wl-num {
+    font-family:'Playfair Display',serif;
+    font-size: 18px; font-weight: 700;
+    color: var(--ink); line-height: 1;
+  }
+  .wl-stat-item .wl-lbl { font-size: 10.5px; color: var(--slate); margin-top: 2px; }
+
+  .status-tag {
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .tag-overloaded { background:#fde8e8; color:#b91c1c; }
+  .tag-underload  { background:#fef3c7; color:#92400e; }
+  .tag-normal     { background:#d4f4dd; color:#1a6b35; }
+
+  .courses-mini {
+    font-size: 11.5px; color: var(--slate);
+    margin-top: 6px;
+    display: flex; flex-wrap: wrap; gap: 5px;
+  }
+  .course-chip {
+    background: var(--parchment); border-radius: 4px;
+    padding: 2px 7px; font-size: 11px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="wl-header">
+  <div>
+    <h1>👨‍🏫 Faculty Workload Distribution</h1>
+    <p>Contact hours per week · Current semester · Sorted by load status</p>
+  </div>
+  <a href="{% url 'resources:dashboard' %}" class="btn-outline"
+     style="color:rgba(255,255,255,0.6);border-color:rgba(255,255,255,0.2);font-size:12px;padding:6px 14px;">
+    <i class="bi bi-arrow-left"></i> Overview
+  </a>
+</div>
+
+<!-- Threshold legend -->
+<div class="threshold-info">
+  <div class="threshold-chip">
+    <span class="dot" style="background:#dc2626;"></span>
+    Overloaded — more than {{ overload_threshold }} hours/week
+  </div>
+  <div class="threshold-chip">
+    <span class="dot" style="background:var(--gold);"></span>
+    Normal — {{ underload_threshold }}–{{ overload_threshold }} hours/week
+  </div>
+  <div class="threshold-chip">
+    <span class="dot" style="background:#f59e0b;"></span>
+    Underloaded — fewer than {{ underload_threshold }} hours/week
+  </div>
+</div>
+
+<!-- Chart -->
+<div class="chart-card">
+  <h2>Weekly Contact Hours per Faculty</h2>
+  <p>Red = overloaded &nbsp;·&nbsp; Gold = normal &nbsp;·&nbsp; Green = underloaded</p>
+  <canvas id="workloadChart" height="160"></canvas>
+</div>
+
+<!-- Faculty list -->
+<div style="font-family:'Playfair Display',serif;font-size:16px;margin-bottom:14px;">
+  All Faculty ({{ workload_data|length }})
+</div>
+
+<div class="faculty-list">
+  {% for wd in workload_data %}
+  {% with r=wd.record f=wd.faculty %}
+  <div class="faculty-row {{ r.status|lower }}">
+
+    <div class="faculty-avatar">
+      {{ f.user.first_name|first }}{{ f.user.last_name|first }}
+    </div>
+
+    <div style="min-width:180px;">
+      <div class="faculty-name">{{ f.user.get_full_name|default:f.faculty_id }}</div>
+      <div class="faculty-dept">{{ f.department.name|default:"—" }}</div>
+      <div class="faculty-id">{{ f.faculty_id }}</div>
+    </div>
+
+    <div class="wl-bar-wrap">
+      <div class="wl-bar-labels">
+        <span>{{ r.total_hours_week }}h/week</span>
+        <span>{{ r.hours_per_day }}h/day avg</span>
+      </div>
+      <div class="wl-bar-bg">
+        {% with pct=r.total_hours_week|floatformat:0 %}
+        <div class="wl-bar-fill {% if r.status == 'OVERLOADED' %}fill-over{% elif r.status == 'UNDERLOAD' %}fill-low{% else %}fill-normal{% endif %}"
+             style="width:{% widthratio r.total_hours_week 25 100 %}%"></div>
+        {% endwith %}
+      </div>
+      {% if wd.courses %}
+      <div class="courses-mini">
+        {% for c in wd.courses %}
+        <span class="course-chip">{{ c.code }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="wl-stats">
+      <div class="wl-stat-item">
+        <div class="wl-num">{{ r.total_courses }}</div>
+        <div class="wl-lbl">Courses</div>
+      </div>
+      <div class="wl-stat-item">
+        <div class="wl-num">{{ r.total_students }}</div>
+        <div class="wl-lbl">Students</div>
+      </div>
+    </div>
+
+    <span class="status-tag tag-{{ r.status|lower }}">
+      {% if r.status == 'OVERLOADED' %}🔴 Overloaded
+      {% elif r.status == 'UNDERLOAD' %}🟡 Underloaded
+      {% else %}✅ Normal{% endif %}
+    </span>
+
+  </div>
+  {% endwith %}
+  {% endfor %}
+
+  {% if not workload_data %}
+  <div style="text-align:center;padding:50px;color:var(--slate);background:white;border-radius:12px;border:1px solid var(--rule);">
+    <div style="font-size:40px;margin-bottom:10px;">👨‍🏫</div>
+    <div>No faculty records found. Add faculty in the admin panel first.</div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script>
+  const ctx = document.getElementById('workloadChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: {{ chart_labels|safe }},
+      datasets: [{
+        label: 'Hours/Week',
+        data:  {{ chart_data|safe }},
+        backgroundColor: {{ chart_colors|safe }},
+        borderRadius: 5,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => ` ${c.raw} hrs/week` } },
+        annotation: {
+          annotations: {
+            overload: {
+              type: 'line', yMin: {{ overload_threshold }}, yMax: {{ overload_threshold }},
+              borderColor: '#dc2626', borderWidth: 1.5,
+              borderDash: [5, 5],
+              label: { content: 'Overload limit', enabled: true }
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 35 } },
+        y: {
+          beginAtZero: true,
+          grid: { color: '#f1f5f9' },
+          ticks: { callback: v => v + 'h', font: { size: 11 } }
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}

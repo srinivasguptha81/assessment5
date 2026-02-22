@@ -52,7 +52,7 @@ class Student(models.Model):
 class Course(models.Model):
     name        = models.CharField(max_length=100)
     code        = models.CharField(max_length=20, unique=True)
-    department  = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True)
+    department = models.ForeignKey(Department,on_delete=models.SET_NULL,null=True,related_name='attendance_courses' )
     faculty     = models.ForeignKey(Faculty, on_delete=models.SET_NULL, null=True)
     students    = models.ManyToManyField(Student, related_name='courses', blank=True)
     total_classes = models.IntegerField(default=0)  # increments each session

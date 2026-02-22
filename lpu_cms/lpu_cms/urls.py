@@ -5,9 +5,10 @@ from django.conf.urls.static import static
 from django.views.generic import RedirectView
 
 urlpatterns = [
-    path('admin/',      admin.site.urls),
-    path('accounts/',   include('django.contrib.auth.urls')),
+    path('admin/',admin.site.urls),
+    path('accounts/',include('django.contrib.auth.urls')),
+    path('resources/', include('resources.urls', namespace='resources')),
     path('attendance/', include('attendance.urls', namespace='attendance')),
-    path('food/',       include('food.urls', namespace='food')),   # ← add this
-    path('',            RedirectView.as_view(url='/accounts/login/')),
+    path('food/',include('food.urls', namespace='food')),  
+    path('',RedirectView.as_view(url='/accounts/login/')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

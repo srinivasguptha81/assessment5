@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% block title %}Courses{% endblock %}
+{% block page_title %}Course List{% endblock %}
+
+{% block extra_css %}
+<style>
+  .filter-bar {
+    background: white; border: 1px solid var(--rule);
+    border-radius: 10px; padding: 14px 18px;
+    display: flex; gap: 12px; align-items: center;
+    margin-bottom: 20px; flex-wrap: wrap;
+  }
+  .filter-bar label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:var(--slate); }
+  .filter-bar select { border:1px solid var(--rule); border-radius:7px; padding:6px 10px; font-size:13px; font-family:'DM Sans',sans-serif; background:white; }
+  .filter-bar select:focus { border-color:var(--gold); outline:none; }
+
+  .course-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; }
+  .course-card {
+    background:white; border:1px solid var(--rule); border-radius:12px;
+    padding:18px 20px; text-decoration:none; color:inherit; display:block;
+    transition:border-color 0.2s,box-shadow 0.2s,transform 0.2s;
+  }
+  .course-card:hover { border-color:var(--gold); box-shadow:0 6px 20px rgba(0,0,0,0.07); transform:translateY(-2px); text-decoration:none; color:inherit; }
+  .course-code { font-family:'DM Mono',monospace; font-size:12px; color:var(--gold); font-weight:500; margin-bottom:4px; }
+  .course-name { font-family:'Playfair Display',serif; font-size:15px; font-weight:600; margin-bottom:10px; line-height:1.3; }
+  .course-meta { display:flex; gap:10px; flex-wrap:wrap; font-size:12px; color:var(--slate); margin-bottom:12px; }
+  .course-enr-row { display:flex; align-items:center; gap:10px; font-size:12px; }
+  .enr-bar { flex:1; height:6px; background:var(--parchment); border-radius:3px; overflow:hidden; }
+  .enr-fill { height:100%; border-radius:3px; background:var(--gold); }
+  .sem-badge { background:var(--parchment); border-radius:4px; padding:2px 8px; font-size:11px; color:var(--slate); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+  <h1 style="font-family:'Playfair Display',serif;font-size:20px;margin:0;">📚 All Courses</h1>
+  <a href="{% url 'resources:dashboard' %}" class="btn-outline" style="font-size:12px;padding:6px 12px;">
+    <i class="bi bi-arrow-left"></i> Overview
+  </a>
+</div>
+
+<!-- Filters -->
+<form method="get" class="filter-bar">
+  <div>
+    <label>Department</label><br>
+    <select name="dept" onchange="this.form.submit()">
+      <option value="">All Departments</option>
+      {% for dept in departments %}
+      <option value="{{ dept.id }}" {% if selected_dept == dept.id|stringformat:"s" %}selected{% endif %}>
+        {{ dept.name }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label>Semester</label><br>
+    <select name="sem" onchange="this.form.submit()">
+      <option value="">All Semesters</option>
+      {% for i in "12345678" %}
+      <option value="{{ i }}" {% if selected_sem == i %}selected{% endif %}>Semester {{ i }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div style="margin-left:auto;align-self:flex-end;">
+    <span style="font-size:13px;color:var(--slate);">{{ courses|length }} course(s) found</span>
+  </div>
+</form>
+
+{% if courses %}
+<div class="course-cards">
+  {% for course in courses %}
+  <a href="{% url 'resources:course_detail' course.id %}" class="course-card">
+    <div class="course-code">{{ course.code }}</div>
+    <div class="course-name">{{ course.name }}</div>
+    <div class="course-meta">
+      {% if course.faculty %}
+      <span><i class="bi bi-person"></i> {{ course.faculty.user.get_full_name }}</span>
+      {% endif %}
+      {% if course.classroom %}
+      <span><i class="bi bi-door-open"></i> {{ course.classroom.block.code }}-{{ course.classroom.room_number }}</span>
+      {% endif %}
+      <span><i class="bi bi-clock"></i> {{ course.hours_per_week }}h/wk</span>
+      <span class="sem-badge">Sem {{ course.semester }}</span>
+    </div>
+    <div class="course-enr-row">
+      <span style="color:var(--slate);min-width:70px;">{{ course.enrolled_count }}/{{ course.max_students }}</span>
+      <div class="enr-bar">
+        <div class="enr-fill" style="width:{{ course.enrollment_percent }}%"></div>
+      </div>
+      <span style="font-weight:600;font-size:12px;">{{ course.enrollment_percent }}%</span>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div style="text-align:center;padding:60px;color:var(--slate);background:white;border-radius:12px;border:1px solid var(--rule);">
+  <div style="font-size:40px;margin-bottom:10px;">📚</div>
+  <div>No courses found for the selected filters.</div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+
+{# ═══════════════════════════════════════════════════════ #}
+{# FILE 2 — classroom_detail.html                          #}
+{# Save as templates/resources/classroom_detail.html       #}
+{# ═══════════════════════════════════════════════════════ #}

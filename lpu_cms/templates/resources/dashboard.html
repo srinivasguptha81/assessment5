@@ -1,0 +1,406 @@
+{% extends 'base.html' %}
+{% block title %}Campus Resource Overview{% endblock %}
+{% block page_title %}Campus Overview{% endblock %}
+
+{% block extra_css %}
+<style>
+  .resource-hero {
+    background: linear-gradient(135deg, var(--ink) 0%, #1c1a14 100%);
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-bottom: 28px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .resource-hero::before {
+    content: '';
+    position: absolute;
+    right: -60px; top: -60px;
+    width: 280px; height: 280px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(201,168,76,0.12) 0%, transparent 70%);
+  }
+  .hero-stat {
+    padding: 0 28px;
+    border-right: 1px solid rgba(255,255,255,0.07);
+    position: relative;
+    z-index: 1;
+  }
+  .hero-stat:first-child { padding-left: 0; }
+  .hero-stat:last-child  { border-right: none; }
+  .hero-stat-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: rgba(247,244,238,0.35);
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+  .hero-stat-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--gold);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .hero-stat-sub {
+    font-size: 12px;
+    color: rgba(247,244,238,0.45);
+  }
+
+  /* utilization meter */
+  .util-meter {
+    margin-top: 10px;
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .util-meter-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: var(--gold);
+    transition: width 1s ease;
+  }
+
+  /* Section headers */
+  .section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .section-head h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    margin: 0;
+  }
+
+  /* Block cards */
+  .blocks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+  .block-card {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 18px 20px;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  }
+  .block-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 28px rgba(0,0,0,0.09);
+    border-color: var(--gold);
+    text-decoration: none;
+    color: inherit;
+  }
+  .block-code {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--slate);
+    margin-bottom: 4px;
+    letter-spacing: 0.06em;
+  }
+  .block-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--ink);
+  }
+  .block-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--slate);
+    margin-bottom: 12px;
+  }
+  .block-util-bar {
+    height: 6px;
+    background: var(--parchment);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .block-util-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 1s ease 0.2s;
+  }
+  .util-low      { background: #16a34a; }
+  .util-moderate { background: var(--gold); }
+  .util-high     { background: var(--rust); }
+  .util-over     { background: #dc2626; }
+  .block-util-label {
+    font-size: 11px;
+    color: var(--slate);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* Workload pills row */
+  .workload-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+  .wl-pill {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .wl-icon {
+    width: 42px; height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .wl-icon.normal     { background: #d4f4dd; }
+  .wl-icon.overloaded { background: #fde8e8; }
+  .wl-icon.underload  { background: #fef3c7; }
+  .wl-count {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--ink);
+  }
+  .wl-label { font-size: 12px; color: var(--slate); margin-top: 2px; }
+
+  /* Two col layout */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }
+  @media (max-width: 860px) { .two-col { grid-template-columns: 1fr; } }
+
+  .data-card {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .data-card-head {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--rule);
+    font-family: 'Playfair Display', serif;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .data-card-body { padding: 0; }
+
+  /* Dept table */
+  .dept-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 20px;
+    border-bottom: 1px solid var(--rule);
+    font-size: 13px;
+  }
+  .dept-row:last-child { border-bottom: none; }
+  .dept-name { flex: 1; font-weight: 500; }
+  .dept-bar-wrap { flex: 2; }
+  .dept-bar-bg { height: 6px; background: var(--parchment); border-radius: 4px; overflow: hidden; }
+  .dept-bar-fill { height: 100%; background: var(--gold); border-radius: 4px; }
+  .dept-count { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--slate); min-width: 36px; text-align: right; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Hero stats -->
+<div class="resource-hero fade-up">
+  <div class="hero-stat">
+    <div class="hero-stat-label">Campus Utilization</div>
+    <div class="hero-stat-value">{{ campus_util }}%</div>
+    <div class="hero-stat-sub">{{ total_enr }} of {{ total_cap }} seats</div>
+    <div class="util-meter">
+      <div class="util-meter-fill" style="width:{{ campus_util }}%"></div>
+    </div>
+  </div>
+  <div class="hero-stat">
+    <div class="hero-stat-label">Campus Blocks</div>
+    <div class="hero-stat-value">{{ blocks|length }}</div>
+    <div class="hero-stat-sub">Active buildings</div>
+  </div>
+  <div class="hero-stat">
+    <div class="hero-stat-label">Total Faculty</div>
+    <div class="hero-stat-value">{{ total_faculty }}</div>
+    <div class="hero-stat-sub">{{ overloaded }} overloaded</div>
+  </div>
+  <div class="hero-stat">
+    <div class="hero-stat-label">Departments</div>
+    <div class="hero-stat-value">{{ dept_data|length }}</div>
+    <div class="hero-stat-sub">Across campus</div>
+  </div>
+</div>
+
+<!-- Blocks grid -->
+<div class="section-head fade-up-1">
+  <h2>🏛️ Campus Blocks</h2>
+  <a href="{% url 'resources:utilization_report' %}" class="btn-outline" style="font-size:12px;padding:6px 14px;">
+    Full Report →
+  </a>
+</div>
+<div class="blocks-grid fade-up-1">
+  {% for block in blocks %}
+  {% with u=block.utilization_percent %}
+  <a href="{% url 'resources:block_detail' block.id %}" class="block-card">
+    <div class="block-code">{{ block.code }}</div>
+    <div class="block-name">{{ block.name }}</div>
+    <div class="block-meta">
+      <span><i class="bi bi-door-open"></i> {{ block.total_classrooms }} rooms</span>
+      <span><i class="bi bi-people"></i> {{ block.total_capacity }} cap</span>
+    </div>
+    <div class="block-util-bar">
+      <div class="block-util-fill {% if u >= 90 %}util-over{% elif u >= 70 %}util-high{% elif u >= 40 %}util-moderate{% else %}util-low{% endif %}"
+           style="width:{{ u }}%"></div>
+    </div>
+    <div class="block-util-label">
+      <span>Utilization</span>
+      <span>{{ u }}%</span>
+    </div>
+  </a>
+  {% endwith %}
+  {% endfor %}
+</div>
+
+<!-- Faculty workload summary -->
+<div class="section-head fade-up-2">
+  <h2>👨‍🏫 Faculty Workload Distribution</h2>
+  <a href="{% url 'resources:faculty_workload' %}" class="btn-outline" style="font-size:12px;padding:6px 14px;">
+    Full Report →
+  </a>
+</div>
+<div class="workload-summary fade-up-2">
+  <div class="wl-pill">
+    <div class="wl-icon normal">✅</div>
+    <div>
+      <div class="wl-count">{{ normal }}</div>
+      <div class="wl-label">Normal Workload</div>
+    </div>
+  </div>
+  <div class="wl-pill">
+    <div class="wl-icon overloaded">🔴</div>
+    <div>
+      <div class="wl-count" style="color:var(--rust);">{{ overloaded }}</div>
+      <div class="wl-label">Overloaded (&gt;{{ overload_threshold|default:20 }}h/wk)</div>
+    </div>
+  </div>
+  <div class="wl-pill">
+    <div class="wl-icon underload">🟡</div>
+    <div>
+      <div class="wl-count" style="color:#92400e;">{{ underloaded }}</div>
+      <div class="wl-label">Underloaded (&lt;{{ underload_threshold|default:6 }}h/wk)</div>
+    </div>
+  </div>
+</div>
+
+<!-- Chart + Department breakdown -->
+<div class="two-col fade-up-3">
+
+  <!-- Block utilization chart -->
+  <div class="data-card">
+    <div class="data-card-head">
+      📊 Block Utilization Chart
+    </div>
+    <div class="data-card-body" style="padding:20px;">
+      <canvas id="blockChart" height="220"></canvas>
+    </div>
+  </div>
+
+  <!-- Department enrollment -->
+  <div class="data-card">
+    <div class="data-card-head">
+      🏢 Department Enrollment
+      <a href="{% url 'resources:course_list' %}" style="font-size:12px;color:var(--gold);text-decoration:none;">All Courses →</a>
+    </div>
+    <div class="data-card-body">
+      {% if dept_data %}
+        {% with max_enr=dept_data.0.enrolled %}
+        {% for d in dept_data %}
+        <div class="dept-row">
+          <div class="dept-name">{{ d.dept.name }}</div>
+          <div class="dept-bar-wrap">
+            <div class="dept-bar-bg">
+              <div class="dept-bar-fill"
+                   style="width:{% if d.enrolled %}{{ d.enrolled|floatformat:0 }}%{% else %}0%{% endif %}">
+              </div>
+            </div>
+          </div>
+          <div class="dept-count">{{ d.enrolled }}</div>
+        </div>
+        {% endfor %}
+        {% endwith %}
+      {% else %}
+        <div style="padding:30px;text-align:center;color:var(--slate);font-size:13px;">
+          No enrollment data yet.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script>
+  const ctx = document.getElementById('blockChart').getContext('2d');
+  const labels = {{ block_labels|safe }};
+  const data   = {{ block_utils|safe }};
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Utilization %',
+        data: data,
+        backgroundColor: data.map(v =>
+          v >= 90 ? '#dc2626' :
+          v >= 70 ? '#b34a2f' :
+          v >= 40 ? '#c9a84c' : '#2d5016'
+        ),
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.raw}% utilized` } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: {
+          beginAtZero: true, max: 100,
+          grid: { color: '#f1f5f9' },
+          ticks: { callback: v => v + '%', font: { size: 11 } }
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}

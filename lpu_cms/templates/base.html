@@ -162,8 +162,8 @@ body { background:var(--cream); color:var(--ink); font-family:'DM Sans',sans-ser
         <i class="bi bi-graph-up"></i> AI Analytics
       </a>
     </div>
+    {% endif %}
 
-  {% else %}
     <!-- ADMIN -->
     {% if user.is_staff %}
     <div class="nav-section">
@@ -205,6 +205,7 @@ body { background:var(--cream); color:var(--ink); font-family:'DM Sans',sans-ser
     {% endif %}
 
     <!-- FOOD (students & faculty) -->
+     {% if student %}
     <div class="nav-section">
       <div class="nav-section-label">Food</div>
       <a href="{% url 'food:stall_list' %}"
@@ -216,7 +217,38 @@ body { background:var(--cream); color:var(--ink); font-family:'DM Sans',sans-ser
         <i class="bi bi-bag"></i> My Orders
       </a>
     </div>
+    {% endif %}
+  <!-- RESOURCES MODULE -->
+<div class="nav-section">
+  
+  {% if admin or faculty %}
+  <div class="nav-section-label">Resources</div>
+  <a href="{% url 'resources:dashboard' %}"
+     class="nav-link {% if 'resources' in request.path %}active{% endif %}">
+    <i class="bi bi-building"></i> Campus Overview
+  </a>
+  <a href="{% url 'resources:faculty_workload' %}"
+     class="nav-link {% if 'workload' in request.path %}active{% endif %}">
+    <i class="bi bi-person-lines-fill"></i> Faculty Workload
+  </a>
+  <a href="{% url 'resources:utilization_report' %}"
+     class="nav-link {% if 'utilization' in request.path %}active{% endif %}">
+    <i class="bi bi-graph-up-arrow"></i> Utilization
+  </a>
+  <a href="{% url 'resources:course_list' %}"
+     class="nav-link {% if 'courses' in request.path %}active{% endif %}">
+    <i class="bi bi-journal-bookmark"></i> Courses
+  </a>
   {% endif %}
+  {% if student %}
+  <a href="{% url 'resources:my_timetable' %}"
+     class="nav-link {% if 'timetable' in request.path %}active{% endif %}">
+    <i class="bi bi-calendar3"></i> My Timetable
+  </a>
+  {% endif %}
+</div>
+
+
 
   <!-- ACCOUNT (everyone) -->
   <div class="nav-section">

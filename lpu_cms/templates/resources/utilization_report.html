@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% block title %}Utilization Report{% endblock %}
+{% block page_title %}Capacity Utilization Report{% endblock %}
+
+{% block extra_css %}
+<style>
+  .report-header {
+    background: linear-gradient(135deg, var(--ink), #1c1a14);
+    border-radius: 14px; padding: 22px 28px;
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .report-header h1 { font-family:'Playfair Display',serif; color:var(--gold); font-size:20px; margin:0 0 4px; }
+  .report-header p  { color:rgba(255,255,255,0.5); font-size:12.5px; margin:0; }
+
+  .status-strip {
+    display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 24px;
+  }
+  .strip-card {
+    background: white; border: 1px solid var(--rule);
+    border-radius: 10px; padding: 14px 16px;
+    border-top: 3px solid transparent;
+  }
+  .strip-card.over     { border-top-color: #dc2626; }
+  .strip-card.high     { border-top-color: var(--rust); }
+  .strip-card.moderate { border-top-color: var(--gold); }
+  .strip-card.low      { border-top-color: #16a34a; }
+  .strip-count { font-family:'Playfair Display',serif; font-size:26px; font-weight:700; line-height:1; }
+  .strip-label { font-size:11px; color:var(--slate); margin-top:3px; text-transform:uppercase; letter-spacing:0.06em; }
+
+  .util-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .util-table thead th {
+    text-align:left; padding:10px 16px;
+    font-size:10px; letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--slate); border-bottom:1px solid var(--rule); background:var(--cream);
+  }
+  .util-table tbody tr { border-bottom:1px solid var(--rule); transition:background 0.15s; }
+  .util-table tbody tr:last-child { border-bottom:none; }
+  .util-table tbody tr:hover { background:rgba(247,244,238,0.8); }
+  .util-table td { padding:12px 16px; vertical-align:middle; }
+
+  .mini-bar { height:6px; background:var(--parchment); border-radius:3px; overflow:hidden; min-width:80px; }
+  .mini-fill { height:100%; border-radius:3px; }
+  .fill-over     { background:#dc2626; }
+  .fill-high     { background:var(--rust); }
+  .fill-moderate { background:var(--gold); }
+  .fill-low      { background:#16a34a; }
+
+  .status-dot {
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:11px; font-weight:600; padding:3px 9px;
+    border-radius:20px;
+  }
+  .dot-over     { background:#fde8e8; color:#b91c1c; }
+  .dot-high     { background:#fde8d8; color:#9a3412; }
+  .dot-moderate { background:#fef3c7; color:#92400e; }
+  .dot-low      { background:#d4f4dd; color:#1a6b35; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="report-header">
+  <div>
+    <h1>📊 Capacity Utilization Report</h1>
+    <p>{{ classrooms|length }} classrooms · Total capacity {{ total_cap }} · {{ total_enr }} enrolled · {{ overall }}% overall</p>
+  </div>
+  <a href="{% url 'resources:dashboard' %}" class="btn-outline"
+     style="color:rgba(255,255,255,0.6);border-color:rgba(255,255,255,0.2);font-size:12px;padding:6px 14px;">
+    <i class="bi bi-arrow-left"></i> Overview
+  </a>
+</div>
+
+<!-- Status summary strip -->
+<div class="status-strip">
+  <div class="strip-card over">
+    <div class="strip-count" style="color:#dc2626;">{{ overcrowded|length }}</div>
+    <div class="strip-label">🔴 Overcrowded (≥90%)</div>
+  </div>
+  <div class="strip-card high">
+    <div class="strip-count" style="color:var(--rust);">{{ high|length }}</div>
+    <div class="strip-label">🟠 High (70–90%)</div>
+  </div>
+  <div class="strip-card moderate">
+    <div class="strip-count" style="color:#92400e;">{{ moderate|length }}</div>
+    <div class="strip-label">🟡 Moderate (40–70%)</div>
+  </div>
+  <div class="strip-card low">
+    <div class="strip-count" style="color:#1a6b35;">{{ low|length }}</div>
+    <div class="strip-label">🟢 Low (&lt;40%)</div>
+  </div>
+</div>
+
+<!-- Full table -->
+<div class="lpu-card">
+  <div class="lpu-card-header">
+    <span class="lpu-card-title">All Classrooms</span>
+    <span style="font-size:12px;color:var(--slate);">{{ classrooms|length }} rooms listed</span>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="util-table">
+      <thead>
+        <tr>
+          <th>Room</th>
+          <th>Block</th>
+          <th>Type</th>
+          <th>Capacity</th>
+          <th>Enrolled</th>
+          <th>Utilization</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for room in classrooms %}
+        {% with u=room.utilization_percent s=room.utilization_status %}
+        <tr>
+          <td>
+            <a href="{% url 'resources:classroom_detail' room.id %}"
+               style="font-weight:600;color:var(--ink);text-decoration:none;font-family:'DM Mono',monospace;font-size:12.5px;">
+              {{ room.block.code }}-{{ room.room_number }}
+            </a>
+          </td>
+          <td style="color:var(--slate);">{{ room.block.name }}</td>
+          <td style="color:var(--slate);font-size:12px;">{{ room.get_room_type_display }}</td>
+          <td style="font-weight:500;">{{ room.capacity }}</td>
+          <td style="font-weight:500;">{{ room.current_enrollment }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="mini-bar">
+                <div class="mini-fill fill-{{ s }}" style="width:{{ u }}%"></div>
+              </div>
+              <span style="font-weight:600;font-size:12px;min-width:36px;">{{ u }}%</span>
+            </div>
+          </td>
+          <td>
+            <span class="status-dot dot-{{ s }}">
+              {% if s == 'overcrowded' %}🔴 Overcrowded
+              {% elif s == 'high' %}🟠 High
+              {% elif s == 'moderate' %}🟡 Moderate
+              {% else %}🟢 Low{% endif %}
+            </span>
+          </td>
+        </tr>
+        {% endwith %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
