@@ -11,4 +11,6 @@ urlpatterns = [
     path('attendance/', include('attendance.urls', namespace='attendance')),
     path('food/',include('food.urls', namespace='food')),  
     path('',RedirectView.as_view(url='/accounts/login/')),
+    path('makeup/', include('makeup.urls', namespace='makeup')),
+
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

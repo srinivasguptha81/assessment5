@@ -1,0 +1,385 @@
+{% extends 'base.html' %}
+{% block title %}Make-Up Classes — Faculty{% endblock %}
+{% block page_title %}Make-Up Classes{% endblock %}
+
+{% block extra_css %}
+<style>
+  .makeup-hero {
+    background: linear-gradient(135deg, var(--ink) 0%, #1a1408 100%);
+    border-radius: 16px;
+    padding: 26px 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .makeup-hero::after {
+    content: '📅';
+    position: absolute;
+    right: 28px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 72px;
+    opacity: 0.07;
+    pointer-events: none;
+  }
+  .makeup-hero h1 {
+    font-family: 'Playfair Display', serif;
+    color: var(--gold);
+    font-size: 22px;
+    margin: 0 0 4px;
+  }
+  .makeup-hero p { color: rgba(247,244,238,0.45); font-size: 13px; margin: 0; }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  @media (max-width: 800px) { .stats-row { grid-template-columns: repeat(2,1fr); } }
+
+  /* Session cards */
+  .sessions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .session-card {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  }
+  .session-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 28px rgba(0,0,0,0.08);
+    border-color: var(--gold);
+  }
+
+  .session-card-top {
+    padding: 16px 18px 12px;
+    border-bottom: 1px solid var(--rule);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .session-course-code {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--gold);
+    font-weight: 500;
+    margin-bottom: 3px;
+    letter-spacing: 0.06em;
+  }
+  .session-course-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.3;
+  }
+
+  .session-status-badge {
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .badge-scheduled { background: #d4ddf5; color: #2d3f80; }
+  .badge-ongoing   { background: #d4f4dd; color: #1a6b35; animation: pulse 2s infinite; }
+  .badge-completed { background: var(--parchment); color: var(--slate); }
+  .badge-cancelled { background: #fde8e8; color: #b91c1c; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.65; }
+  }
+
+  .session-card-body { padding: 14px 18px; }
+
+  .session-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--slate);
+    margin-bottom: 14px;
+  }
+  .session-meta span { display: flex; align-items: center; gap: 7px; }
+  .session-meta i { width: 14px; color: var(--gold); }
+
+  /* The remedial code display */
+  .code-display {
+    background: var(--ink);
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .code-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(247,244,238,0.35);
+    margin-bottom: 4px;
+  }
+  .code-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 0.18em;
+  }
+  .code-active-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-active   { background: #16a34a; box-shadow: 0 0 8px #16a34a; animation: pulse 1.5s infinite; }
+  .dot-inactive { background: rgba(247,244,238,0.2); }
+
+  .session-card-footer {
+    padding: 12px 18px;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    gap: 8px;
+  }
+  .card-action-btn {
+    flex: 1;
+    padding: 7px 0;
+    border: 1px solid var(--rule);
+    border-radius: 7px;
+    background: none;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .card-action-btn:hover { background: var(--parchment); border-color: var(--gold); color: var(--ink); text-decoration: none; }
+  .card-action-btn.primary { background: var(--ink); color: var(--gold); border-color: var(--ink); }
+  .card-action-btn.primary:hover { background: #2a2926; color: var(--gold); }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+  }
+  .empty-state .icon { font-size: 48px; margin-bottom: 14px; }
+  .empty-state h3 { font-family: 'Playfair Display', serif; font-size: 18px; margin-bottom: 6px; }
+  .empty-state p { font-size: 13px; color: var(--slate); margin-bottom: 20px; }
+
+  .section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .section-head h2 { font-family: 'Playfair Display', serif; font-size: 17px; margin: 0; }
+
+  .att-pill {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--slate);
+  }
+  .att-mini-bar { width: 60px; height: 5px; background: var(--parchment); border-radius: 3px; overflow: hidden; }
+  .att-mini-fill { height: 100%; background: var(--gold); border-radius: 3px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Hero -->
+<div class="makeup-hero fade-up">
+  <div>
+    <h1>Make-Up Classes</h1>
+    <p>{{ faculty.user.get_full_name }} &nbsp;·&nbsp; Schedule sessions, share remedial codes, track attendance</p>
+  </div>
+  <a href="{% url 'makeup:schedule_session' %}" class="btn-gold" style="position:relative;z-index:1;">
+    <i class="bi bi-plus-circle"></i> Schedule Make-Up
+  </a>
+</div>
+
+<!-- Stats -->
+<div class="stats-row fade-up-1">
+  <div class="stat-card gold">
+    <span class="stat-icon">📅</span>
+    <span class="stat-value">{{ upcoming|length }}</span>
+    <span class="stat-label">Upcoming Sessions</span>
+  </div>
+  <div class="stat-card green">
+    <span class="stat-icon">✅</span>
+    <span class="stat-value">{{ completed|length }}</span>
+    <span class="stat-label">Completed</span>
+  </div>
+  <div class="stat-card blue">
+    <span class="stat-icon">📚</span>
+    <span class="stat-value">{{ courses|length }}</span>
+    <span class="stat-label">Active Courses</span>
+  </div>
+  <div class="stat-card rust">
+    <span class="stat-icon">👥</span>
+    <span class="stat-value">
+      {% with total=0 %}
+        {% for s in completed %}{% endfor %}
+        {{ completed|length }}
+      {% endwith %}
+    </span>
+    <span class="stat-label">Sessions This Semester</span>
+  </div>
+</div>
+
+<!-- Upcoming sessions -->
+<div class="section-head fade-up-2">
+  <h2>📌 Upcoming & Ongoing</h2>
+</div>
+
+{% if upcoming %}
+<div class="sessions-grid fade-up-2">
+  {% for session in upcoming %}
+  <div class="session-card">
+    <div class="session-card-top">
+      <div>
+        <div class="session-course-code">{{ session.course.code }}</div>
+        <div class="session-course-name">{{ session.course.name }}</div>
+      </div>
+      <span class="session-status-badge badge-{{ session.status|lower }}">
+        {% if session.status == 'ONGOING' %}🟢 Live
+        {% elif session.status == 'SCHEDULED' %}🔵 Scheduled
+        {% else %}{{ session.get_status_display }}{% endif %}
+      </span>
+    </div>
+
+    <div class="session-card-body">
+      <div class="session-meta">
+        <span><i class="bi bi-calendar3"></i> {{ session.date|date:"D, d M Y" }}</span>
+        <span><i class="bi bi-clock"></i> {{ session.start_time|time:"g:i A" }} – {{ session.end_time|time:"g:i A" }}</span>
+        <span><i class="bi bi-geo-alt"></i> {{ session.venue }}</span>
+        <span><i class="bi bi-info-circle"></i> {{ session.get_reason_display }}</span>
+      </div>
+
+      <!-- Code display -->
+      <div class="code-display">
+        <div>
+          <div class="code-label">Remedial Code</div>
+          <div class="code-value">{{ session.remedial_code }}</div>
+        </div>
+        <div style="text-align:center;">
+          <div class="code-active-dot {% if session.is_code_valid %}dot-active{% else %}dot-inactive{% endif %}"></div>
+          <div style="font-size:9px;color:rgba(247,244,238,0.3);margin-top:4px;text-transform:uppercase;letter-spacing:0.1em;">
+            {% if session.is_code_valid %}Active{% else %}Inactive{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Attendance mini progress -->
+      <div class="att-pill">
+        <div class="att-mini-bar">
+          <div class="att-mini-fill" style="width:{{ session.attendance_percent }}%"></div>
+        </div>
+        <span>{{ session.attendance_count }}/{{ session.total_enrolled }} attended</span>
+      </div>
+    </div>
+
+    <div class="session-card-footer">
+      <a href="{% url 'makeup:session_detail' session.id %}" class="card-action-btn primary">
+        <i class="bi bi-eye"></i> Manage
+      </a>
+      {% if not session.is_code_valid %}
+      <form method="post" action="{% url 'makeup:activate_code' session.id %}" style="flex:1;">
+        {% csrf_token %}
+        <input type="hidden" name="duration" value="30">
+        <button type="submit" class="card-action-btn" style="width:100%;background:#d4f4dd;border-color:#16a34a;color:#1a6b35;">
+          <i class="bi bi-play-circle"></i> Activate
+        </button>
+      </form>
+      {% else %}
+      <form method="post" action="{% url 'makeup:deactivate_code' session.id %}" style="flex:1;">
+        {% csrf_token %}
+        <button type="submit" class="card-action-btn" style="width:100%;background:#fde8e8;border-color:#ef4444;color:#b91c1c;">
+          <i class="bi bi-stop-circle"></i> Close
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state fade-up-2">
+  <div class="icon">📅</div>
+  <h3>No upcoming sessions</h3>
+  <p>Schedule a make-up class to get started.</p>
+  <a href="{% url 'makeup:schedule_session' %}" class="btn-gold">
+    <i class="bi bi-plus-circle"></i> Schedule Now
+  </a>
+</div>
+{% endif %}
+
+<!-- Completed sessions -->
+{% if completed %}
+<div class="section-head fade-up-3" style="margin-top:32px;">
+  <h2>✅ Completed Sessions</h2>
+</div>
+<div class="lpu-card fade-up-3">
+  <table class="lpu-table">
+    <thead>
+      <tr>
+        <th>Course</th>
+        <th>Date</th>
+        <th>Time</th>
+        <th>Venue</th>
+        <th>Code</th>
+        <th>Attendance</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for session in completed %}
+      <tr>
+        <td>
+          <div style="font-weight:600;">{{ session.course.code }}</div>
+          <div style="font-size:11.5px;color:var(--slate);">{{ session.course.name }}</div>
+        </td>
+        <td>{{ session.date|date:"d M Y" }}</td>
+        <td style="font-size:12px;color:var(--slate);">{{ session.start_time|time:"g:i A" }}</td>
+        <td style="font-size:12px;color:var(--slate);">{{ session.venue }}</td>
+        <td><span style="font-family:'DM Mono',monospace;font-size:13px;color:var(--gold);font-weight:600;">{{ session.remedial_code }}</span></td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;">
+            <div style="width:50px;height:5px;background:var(--parchment);border-radius:3px;overflow:hidden;">
+              <div style="height:100%;background:var(--gold);width:{{ session.attendance_percent }}%;border-radius:3px;"></div>
+            </div>
+            {{ session.attendance_count }}/{{ session.total_enrolled }}
+          </div>
+        </td>
+        <td>
+          <a href="{% url 'makeup:session_detail' session.id %}" class="btn-outline" style="padding:5px 12px;font-size:11.5px;">
+            View
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% endblock %}

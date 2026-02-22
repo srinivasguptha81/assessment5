@@ -179,7 +179,7 @@ body { background:var(--cream); color:var(--ink); font-family:'DM Sans',sans-ser
     {% endif %}
 
     <!-- FACULTY / ADMIN ATTENDANCE -->
-    {% if user.is_staff or faculty %}
+    {% if faculty %}
     <div class="nav-section">
       <div class="nav-section-label">Attendance</div>
       <a href="{% url 'attendance:faculty_dashboard' %}"
@@ -220,8 +220,7 @@ body { background:var(--cream); color:var(--ink); font-family:'DM Sans',sans-ser
     {% endif %}
   <!-- RESOURCES MODULE -->
 <div class="nav-section">
-  
-  {% if admin or faculty %}
+  {% if user.is_staff or faculty %}
   <div class="nav-section-label">Resources</div>
   <a href="{% url 'resources:dashboard' %}"
      class="nav-link {% if 'resources' in request.path %}active{% endif %}">
@@ -244,6 +243,26 @@ body { background:var(--cream); color:var(--ink); font-family:'DM Sans',sans-ser
   <a href="{% url 'resources:my_timetable' %}"
      class="nav-link {% if 'timetable' in request.path %}active{% endif %}">
     <i class="bi bi-calendar3"></i> My Timetable
+  </a>
+  {% endif %}
+</div>
+<!-- MAKE-UP CLASSES -->
+<div class="nav-section">
+  <div class="nav-section-label">Make-Up Classes</div>
+  {% if user.is_staff or faculty %}
+  <a href="{% url 'makeup:faculty_dashboard' %}"
+     class="nav-link {% if 'makeup' in request.path and 'student' not in request.path %}active{% endif %}">
+    <i class="bi bi-calendar-plus"></i> My Sessions
+  </a>
+  <a href="{% url 'makeup:schedule_session' %}"
+     class="nav-link {% if 'schedule' in request.path %}active{% endif %}">
+    <i class="bi bi-plus-circle"></i> Schedule Class
+  </a>
+  {% endif %}
+  {% if student %}
+  <a href="{% url 'makeup:student_dashboard' %}"
+     class="nav-link {% if 'makeup' in request.path and 'student' in request.path %}active{% endif %}">
+    <i class="bi bi-qr-code-scan"></i> Enter Code
   </a>
   {% endif %}
 </div>

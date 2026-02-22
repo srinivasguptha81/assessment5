@@ -1,0 +1,302 @@
+{% extends 'base.html' %}
+{% block title %}Make-Up Classes — Student{% endblock %}
+{% block page_title %}Make-Up Classes{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Code entry hero */
+  .code-entry-hero {
+    background: linear-gradient(135deg, var(--ink), #1a1408);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 28px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .code-entry-hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, rgba(201,168,76,0.1) 0%, transparent 65%);
+    pointer-events: none;
+  }
+  .code-entry-hero h2 {
+    font-family: 'Playfair Display', serif;
+    color: var(--gold); font-size: 22px; margin: 0 0 6px;
+    position: relative; z-index: 1;
+  }
+  .code-entry-hero p {
+    color: rgba(247,244,238,0.45); font-size: 13px;
+    margin: 0 0 24px; position: relative; z-index: 1;
+  }
+
+  /* The 6-box code input */
+  .code-input-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 18px;
+    position: relative; z-index: 1;
+  }
+  .code-input-box {
+    width: 50px; height: 58px;
+    background: rgba(255,255,255,0.06);
+    border: 1.5px solid rgba(201,168,76,0.2);
+    border-radius: 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 24px; font-weight: 700;
+    color: var(--gold);
+    text-align: center;
+    text-transform: uppercase;
+    transition: all 0.18s;
+    caret-color: var(--gold);
+  }
+  .code-input-box:focus {
+    outline: none;
+    border-color: var(--gold);
+    background: rgba(201,168,76,0.1);
+    box-shadow: 0 0 0 3px rgba(201,168,76,0.15);
+  }
+  .code-input-box.filled {
+    border-color: rgba(201,168,76,0.5);
+    background: rgba(201,168,76,0.08);
+  }
+
+  .code-submit-btn {
+    background: var(--gold); color: var(--ink);
+    border: none; border-radius: 10px;
+    padding: 11px 32px; font-size: 14px; font-weight: 700;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: all 0.18s;
+    display: inline-flex; align-items: center; gap: 8px;
+    position: relative; z-index: 1;
+  }
+  .code-submit-btn:hover { background: #b8943a; transform: translateY(-1px); }
+  .code-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .code-hint {
+    font-size: 12px; color: rgba(247,244,238,0.25);
+    margin-top: 12px; position: relative; z-index: 1;
+  }
+
+  /* Session cards for student */
+  .student-sessions { display: flex; flex-direction: column; gap: 12px; }
+
+  .student-session-row {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .student-session-row:hover { border-color: var(--gold); box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+  .student-session-row.marked { border-left: 3px solid #16a34a; }
+  .student-session-row.live   { border-left: 3px solid var(--gold); }
+  .student-session-row.upcoming { border-left: 3px solid #5b7ec9; }
+
+  .ss-course {
+    min-width: 120px;
+  }
+  .ss-code {
+    font-family: 'DM Mono', monospace; font-size: 12px;
+    color: var(--gold); margin-bottom: 3px;
+  }
+  .ss-name { font-weight: 600; font-size: 13.5px; color: var(--ink); }
+
+  .ss-details {
+    flex: 1;
+    font-size: 12.5px; color: var(--slate);
+    display: flex; flex-wrap: wrap; gap: 10px;
+    align-items: center;
+  }
+  .ss-details span { display: flex; align-items: center; gap: 5px; }
+
+  .marked-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: #d4f4dd; color: #1a6b35;
+    border-radius: 20px; padding: 5px 12px;
+    font-size: 12px; font-weight: 600; flex-shrink: 0;
+  }
+  .live-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(201,168,76,0.12);
+    border: 1px solid rgba(201,168,76,0.3);
+    color: var(--gold); border-radius: 20px; padding: 5px 12px;
+    font-size: 12px; font-weight: 600; flex-shrink: 0;
+    animation: softPulse 2s infinite;
+  }
+  @keyframes softPulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+
+  .quick-mark-btn {
+    background: var(--ink); color: var(--gold);
+    border: none; border-radius: 8px; padding: 8px 16px;
+    font-size: 12.5px; font-weight: 600; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; flex-shrink: 0;
+    display: flex; align-items: center; gap: 6px;
+    transition: all 0.18s;
+  }
+  .quick-mark-btn:hover { background: #2a2926; }
+
+  .empty-state {
+    text-align: center; padding: 60px 20px;
+    background: white; border: 1px solid var(--rule); border-radius: 14px;
+  }
+  .empty-state .icon { font-size: 48px; margin-bottom: 14px; }
+  .empty-state h3 { font-family: 'Playfair Display', serif; font-size: 18px; margin-bottom: 6px; }
+  .empty-state p { font-size: 13px; color: var(--slate); }
+
+  .section-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .section-head h2 { font-family: 'Playfair Display', serif; font-size: 17px; margin: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Code Entry Hero -->
+<div class="code-entry-hero fade-up">
+  <h2>Enter Remedial Code</h2>
+  <p>Your faculty will share a 6-character code when attendance opens. Enter it below.</p>
+
+  <form method="post" action="{% url 'makeup:mark_attendance' %}" id="codeForm">
+    {% csrf_token %}
+    <!-- Hidden field that gets filled from the boxes -->
+    <input type="hidden" name="code" id="hiddenCode">
+
+    <div class="code-input-row">
+      {% for i in "123456" %}
+      <input type="text"
+             class="code-input-box"
+             maxlength="1"
+             pattern="[A-Za-z0-9]"
+             inputmode="text"
+             autocomplete="off"
+             id="box{{ i }}"
+             data-index="{{ forloop.counter }}">
+      {% endfor %}
+    </div>
+
+    <button type="submit" class="code-submit-btn" id="submitBtn" disabled>
+      <i class="bi bi-check-circle"></i> Mark Attendance
+    </button>
+  </form>
+
+  <div class="code-hint">
+    <i class="bi bi-shield-check"></i>
+    Code is only valid during the active window set by your faculty
+  </div>
+</div>
+
+<!-- Session list -->
+<div class="section-head fade-up-1">
+  <h2>📅 Make-Up Sessions for Your Courses</h2>
+  <span style="font-size:12px;color:var(--slate);">{{ session_data|length }} session(s)</span>
+</div>
+
+{% if session_data %}
+<div class="student-sessions fade-up-1">
+  {% for item in session_data %}
+  {% with s=item.session %}
+  <div class="student-session-row {% if item.marked %}marked{% elif s.is_code_valid %}live{% else %}upcoming{% endif %}">
+
+    <div class="ss-course">
+      <div class="ss-code">{{ s.course.code }}</div>
+      <div class="ss-name">{{ s.course.name }}</div>
+    </div>
+
+    <div class="ss-details">
+      <span><i class="bi bi-calendar3"></i> {{ s.date|date:"d M Y" }}</span>
+      <span><i class="bi bi-clock"></i> {{ s.start_time|time:"g:i A" }} – {{ s.end_time|time:"g:i A" }}</span>
+      <span><i class="bi bi-geo-alt"></i> {{ s.venue }}</span>
+      <span><i class="bi bi-person"></i> {{ s.faculty.user.get_full_name }}</span>
+    </div>
+
+    {% if item.marked %}
+      <div class="marked-badge">
+        <i class="bi bi-check-circle-fill"></i> Attended
+      </div>
+    {% elif s.is_code_valid %}
+      <div class="live-badge">
+        🟡 Code Active
+      </div>
+    {% else %}
+      <span style="font-size:12px;color:var(--slate);flex-shrink:0;">
+        {% if s.status == 'COMPLETED' %}Closed{% elif s.status == 'SCHEDULED' %}Upcoming{% else %}{{ s.get_status_display }}{% endif %}
+      </span>
+    {% endif %}
+
+  </div>
+  {% endwith %}
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="empty-state fade-up-1">
+  <div class="icon">📅</div>
+  <h3>No make-up sessions yet</h3>
+  <p>When your faculty schedules a make-up class for your courses, it will appear here.</p>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const boxes    = document.querySelectorAll('.code-input-box');
+  const hidden   = document.getElementById('hiddenCode');
+  const submitBtn = document.getElementById('submitBtn');
+
+  boxes.forEach((box, idx) => {
+
+    box.addEventListener('input', (e) => {
+      const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      box.value = val;
+      box.classList.toggle('filled', val.length > 0);
+
+      // Auto-advance
+      if (val && idx < boxes.length - 1) {
+        boxes[idx + 1].focus();
+      }
+
+      syncHidden();
+    });
+
+    box.addEventListener('keydown', (e) => {
+      // Backspace goes to previous box
+      if (e.key === 'Backspace' && !box.value && idx > 0) {
+        boxes[idx - 1].focus();
+        boxes[idx - 1].value = '';
+        boxes[idx - 1].classList.remove('filled');
+        syncHidden();
+      }
+    });
+
+    box.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const pasted = (e.clipboardData.getData('text') || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      pasted.split('').slice(0, 6).forEach((char, i) => {
+        if (boxes[i]) {
+          boxes[i].value = char;
+          boxes[i].classList.add('filled');
+        }
+      });
+      syncHidden();
+      boxes[Math.min(pasted.length, 5)].focus();
+    });
+  });
+
+  function syncHidden() {
+    const code = Array.from(boxes).map(b => b.value).join('');
+    hidden.value = code;
+    submitBtn.disabled = code.length !== 6;
+  }
+
+  // Focus first box on load
+  boxes[0].focus();
+</script>
+{% endblock %}

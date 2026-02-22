@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+{% block title %}Schedule Make-Up Class{% endblock %}
+{% block page_title %}Schedule Make-Up Class{% endblock %}
+
+{% block extra_css %}
+<style>
+  .schedule-wrap {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .schedule-card {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .schedule-card-head {
+    background: var(--ink);
+    padding: 22px 28px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .schedule-card-head h2 {
+    font-family: 'Playfair Display', serif;
+    color: var(--gold);
+    font-size: 18px;
+    margin: 0 0 3px;
+  }
+  .schedule-card-head p {
+    color: rgba(247,244,238,0.45);
+    font-size: 12.5px;
+    margin: 0;
+  }
+  .head-icon {
+    width: 44px; height: 44px;
+    background: rgba(201,168,76,0.15);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  .schedule-body { padding: 28px; }
+
+  .form-section {
+    margin-bottom: 26px;
+    padding-bottom: 26px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .form-section:last-of-type { border-bottom: none; margin-bottom: 0; }
+  .form-section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--slate);
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid .span-2 { grid-column: span 2; }
+  @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } .form-grid .span-2 { grid-column: span 1; } }
+
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group label {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em; color: var(--slate);
+  }
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    border: 1px solid var(--rule); border-radius: 8px;
+    padding: 9px 12px; font-size: 13.5px;
+    font-family: 'DM Sans', sans-serif; background: white;
+    transition: border-color 0.18s; width: 100%;
+  }
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.12); outline: none;
+  }
+  .form-group textarea { resize: vertical; min-height: 80px; }
+  .field-hint { font-size: 11px; color: var(--slate); margin-top: 3px; }
+
+  /* AI suggestions panel */
+  .ai-panel {
+    background: linear-gradient(135deg, var(--ink), #1c1a14);
+    border-radius: 12px;
+    padding: 20px 22px;
+    margin-bottom: 24px;
+  }
+  .ai-panel-head {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 14px;
+  }
+  .ai-panel-head h3 {
+    font-family: 'Playfair Display', serif;
+    color: var(--gold); font-size: 15px; margin: 0;
+  }
+  .ai-panel-head p {
+    color: rgba(247,244,238,0.4); font-size: 11.5px; margin: 0;
+  }
+  .ai-badge {
+    background: rgba(201,168,76,0.14);
+    border: 1px solid rgba(201,168,76,0.28);
+    color: var(--gold-light);
+    font-size: 9px; letter-spacing: 0.1em;
+    text-transform: uppercase; padding: 3px 9px; border-radius: 20px;
+    font-weight: 500; flex-shrink: 0;
+  }
+
+  .suggestion-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .suggestion-chip {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px; padding: 9px 13px;
+    cursor: pointer; transition: all 0.18s;
+    font-size: 12px; color: rgba(247,244,238,0.7);
+  }
+  .suggestion-chip:hover {
+    border-color: var(--gold); background: rgba(201,168,76,0.1);
+    color: var(--gold-light);
+  }
+  .suggestion-chip .chip-date { font-weight: 600; color: var(--gold-light); }
+  .suggestion-chip .chip-score {
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    color: rgba(247,244,238,0.35); margin-top: 3px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:22px;">
+  <a href="{% url 'makeup:faculty_dashboard' %}" class="btn-outline" style="font-size:12px;padding:6px 12px;">
+    <i class="bi bi-arrow-left"></i> Back
+  </a>
+</div>
+
+<div class="schedule-wrap">
+
+  <!-- AI Smart Scheduling hint -->
+  <div class="ai-panel fade-up">
+    <div class="ai-panel-head">
+      <div>
+        <h3>🤖 AI Scheduling Assistant</h3>
+        <p>Fill in the form below — after scheduling, the AI will suggest optimal future slots based on faculty load and gaps.</p>
+      </div>
+      <span class="ai-badge">AI Powered</span>
+    </div>
+    <div style="font-size:12px;color:rgba(247,244,238,0.4);line-height:1.6;">
+      The AI scores each slot on: gap from last session · time of day preference · faculty availability · day load balance
+    </div>
+  </div>
+
+  <div class="schedule-card fade-up-1">
+    <div class="schedule-card-head">
+      <div class="head-icon">📅</div>
+      <div>
+        <h2>Schedule Make-Up Class</h2>
+        <p>A unique 6-character remedial code will be generated automatically</p>
+      </div>
+    </div>
+
+    <div class="schedule-body">
+      <form method="post" action="{% url 'makeup:schedule_session' %}">
+        {% csrf_token %}
+
+        <!-- Course & Date -->
+        <div class="form-section">
+          <div class="form-section-title">
+            <i class="bi bi-journal-bookmark" style="color:var(--gold);"></i> Course & Schedule
+          </div>
+          <div class="form-grid">
+            <div class="form-group span-2">
+              <label>Course *</label>
+              <select name="course" required>
+                <option value="">— Select Course —</option>
+                {% for course in courses %}
+                <option value="{{ course.id }}">{{ course.code }} — {{ course.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Date *</label>
+              <input type="date" name="date" min="{{ today|date:'Y-m-d' }}" required>
+            </div>
+            <div class="form-group">
+              <label>Reason *</label>
+              <select name="reason" required>
+                <option value="HOLIDAY">Holiday — Missed Class</option>
+                <option value="SICK">Faculty Was Sick</option>
+                <option value="EVENT">College Event</option>
+                <option value="EXTRA">Extra Coverage Needed</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Start Time *</label>
+              <input type="time" name="start_time" required>
+            </div>
+            <div class="form-group">
+              <label>End Time *</label>
+              <input type="time" name="end_time" required>
+            </div>
+          </div>
+        </div>
+
+        <!-- Venue & Notes -->
+        <div class="form-section">
+          <div class="form-section-title">
+            <i class="bi bi-geo-alt" style="color:var(--gold);"></i> Location & Notes
+          </div>
+          <div class="form-grid">
+            <div class="form-group span-2">
+              <label>Venue *</label>
+              <input type="text" name="venue" placeholder="e.g. Block 32 — Room 101" required>
+              <span class="field-hint">Classroom or location where the session will be held</span>
+            </div>
+            <div class="form-group span-2">
+              <label>Additional Notes</label>
+              <textarea name="notes" placeholder="Any instructions for students…"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center;">
+          <button type="submit" class="btn-gold">
+            <i class="bi bi-calendar-plus"></i> Schedule & Generate Code
+          </button>
+          <a href="{% url 'makeup:faculty_dashboard' %}" class="btn-outline">Cancel</a>
+          <span style="font-size:12px;color:var(--slate);margin-left:auto;">
+            <i class="bi bi-shield-check"></i> Code generated automatically
+          </span>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

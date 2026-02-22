@@ -1,0 +1,422 @@
+{% extends 'base.html' %}
+{% block title %}{{ session.course.code }} Make-Up — Session Detail{% endblock %}
+{% block page_title %}Session Detail{% endblock %}
+
+{% block extra_css %}
+<style>
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 900px) { .detail-grid { grid-template-columns: 1fr; } }
+
+  /* Session header card */
+  .session-header-card {
+    background: var(--ink);
+    border-radius: 14px;
+    padding: 24px 26px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .session-header-card::after {
+    content: '';
+    position: absolute; right: -40px; top: -40px;
+    width: 200px; height: 200px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(201,168,76,0.12) 0%, transparent 70%);
+  }
+  .session-header-card h1 {
+    font-family: 'Playfair Display', serif;
+    color: var(--gold); font-size: 20px; margin: 0 0 4px;
+    position: relative; z-index: 1;
+  }
+  .session-header-card p {
+    color: rgba(247,244,238,0.5); font-size: 12.5px; margin: 0;
+    position: relative; z-index: 1;
+  }
+
+  /* THE CODE BOX — centrepiece of this page */
+  .code-box {
+    background: var(--ink);
+    border: 2px solid rgba(201,168,76,0.3);
+    border-radius: 16px;
+    padding: 24px;
+    text-align: center;
+    position: sticky;
+    top: 80px;
+  }
+  .code-box-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: rgba(247,244,238,0.3);
+    margin-bottom: 12px;
+  }
+  .code-chars {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+  .code-char {
+    width: 44px; height: 52px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 22px; font-weight: 700;
+    color: var(--gold);
+    transition: all 0.3s;
+  }
+  .code-char.active-char {
+    background: rgba(201,168,76,0.12);
+    border-color: var(--gold);
+    box-shadow: 0 0 14px rgba(201,168,76,0.2);
+  }
+
+  .code-status-row {
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px; margin-bottom: 16px; font-size: 13px;
+  }
+  .status-live { color: #16a34a; font-weight: 600; }
+  .status-idle { color: rgba(247,244,238,0.35); }
+
+  .live-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .live-dot.active { background: #16a34a; box-shadow: 0 0 8px #16a34a; animation: livePulse 1.5s infinite; }
+  .live-dot.idle   { background: rgba(247,244,238,0.2); }
+
+  @keyframes livePulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50%       { transform: scale(1.3); opacity: 0.6; }
+  }
+
+  /* Countdown timer */
+  .countdown-wrap {
+    background: rgba(255,255,255,0.04);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .countdown-wrap.visible { display: block; }
+  .countdown-label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: rgba(247,244,238,0.3); margin-bottom: 6px;
+  }
+  .countdown-timer {
+    font-family: 'DM Mono', monospace;
+    font-size: 28px; font-weight: 700;
+    color: var(--gold); letter-spacing: 0.1em;
+  }
+  .countdown-bar-bg  { height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; margin-top: 8px; }
+  .countdown-bar-fill { height: 100%; background: var(--gold); border-radius: 2px; transition: width 1s linear; }
+
+  .code-actions { display: flex; flex-direction: column; gap: 8px; }
+  .code-btn {
+    width: 100%; padding: 10px;
+    border-radius: 8px; border: none;
+    font-size: 13px; font-weight: 500;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: all 0.18s;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+  }
+  .code-btn.activate   { background: #16a34a; color: white; }
+  .code-btn.activate:hover { background: #15803d; }
+  .code-btn.deactivate { background: #dc2626; color: white; }
+  .code-btn.deactivate:hover { background: #b91c1c; }
+  .code-btn.regen { background: rgba(255,255,255,0.07); color: rgba(247,244,238,0.6); border: 1px solid rgba(255,255,255,0.1); }
+  .code-btn.regen:hover { background: rgba(255,255,255,0.12); color: rgba(247,244,238,0.9); }
+
+  .duration-select {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(247,244,238,0.7);
+    border-radius: 7px; padding: 7px 10px;
+    font-size: 12.5px; font-family: 'DM Sans', sans-serif;
+    width: 100%; margin-bottom: 8px;
+  }
+
+  /* Attendance table */
+  .att-count-badge {
+    background: var(--gold); color: var(--ink);
+    border-radius: 20px; padding: 2px 10px;
+    font-size: 12px; font-weight: 700;
+  }
+  .att-row { display: flex; align-items: center; gap: 12px; padding: 11px 18px; border-bottom: 1px solid var(--rule); font-size: 13px; }
+  .att-row:last-child { border-bottom: none; }
+  .att-avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), var(--rust));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: white; flex-shrink: 0; text-transform: uppercase;
+  }
+  .att-name { flex: 1; font-weight: 500; }
+  .att-time { font-size: 11.5px; color: var(--slate); font-family: 'DM Mono', monospace; }
+
+  /* AI suggestions */
+  .ai-suggestion-card {
+    background: white; border: 1px solid var(--rule);
+    border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .ai-score-circle {
+    width: 42px; height: 42px; border-radius: 50%;
+    border: 2px solid var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 14px; font-weight: 700; color: var(--gold);
+    flex-shrink: 0;
+  }
+  .ai-sug-date { font-weight: 600; font-size: 13.5px; }
+  .ai-sug-time { font-size: 12px; color: var(--slate); }
+  .ai-sug-reason { font-size: 11.5px; color: var(--slate); margin-top: 3px; line-height: 1.4; }
+
+  .info-grid-2 {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px;
+  }
+  .info-cell {
+    background: var(--parchment); border-radius: 8px; padding: 11px 14px;
+  }
+  .info-cell-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--slate); margin-bottom: 3px; }
+  .info-cell-value { font-weight: 600; font-size: 13.5px; color: var(--ink); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:22px;">
+  <a href="{% url 'makeup:faculty_dashboard' %}" class="btn-outline" style="font-size:12px;padding:6px 12px;">
+    <i class="bi bi-arrow-left"></i> Dashboard
+  </a>
+</div>
+
+<!-- Session header -->
+<div class="session-header-card fade-up">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;position:relative;z-index:1;">
+    <div>
+      <h1>{{ session.course.code }} — Make-Up Class</h1>
+      <p>{{ session.course.name }} &nbsp;·&nbsp; {{ session.date|date:"D, d M Y" }} &nbsp;·&nbsp; {{ session.start_time|time:"g:i A" }}–{{ session.end_time|time:"g:i A" }} &nbsp;·&nbsp; {{ session.venue }}</p>
+    </div>
+    <span class="session-status-badge badge-{{ session.status|lower }}" style="position:relative;z-index:1;">
+      {% if session.status == 'ONGOING' %}🟢 Live{% elif session.status == 'SCHEDULED' %}🔵 Scheduled{% elif session.status == 'COMPLETED' %}✅ Completed{% else %}{{ session.get_status_display }}{% endif %}
+    </span>
+  </div>
+</div>
+
+<div class="detail-grid">
+
+  <!-- LEFT COLUMN -->
+  <div>
+
+    <!-- Session info grid -->
+    <div class="info-grid-2 fade-up-1">
+      <div class="info-cell">
+        <div class="info-cell-label">Reason</div>
+        <div class="info-cell-value">{{ session.get_reason_display }}</div>
+      </div>
+      <div class="info-cell">
+        <div class="info-cell-label">Attendance</div>
+        <div class="info-cell-value">{{ session.attendance_count }} / {{ session.total_enrolled }} ({{ session.attendance_percent }}%)</div>
+      </div>
+      <div class="info-cell">
+        <div class="info-cell-label">Created On</div>
+        <div class="info-cell-value">{{ session.created_at|date:"d M Y" }}</div>
+      </div>
+      <div class="info-cell">
+        <div class="info-cell-label">Code Status</div>
+        <div class="info-cell-value">{% if session.is_code_valid %}🟢 Active{% elif session.status == 'COMPLETED' %}✅ Closed{% else %}⚪ Inactive{% endif %}</div>
+      </div>
+    </div>
+
+    {% if session.notes %}
+    <div class="lpu-alert info fade-up-1" style="margin-bottom:18px;">
+      <i class="bi bi-info-circle"></i> {{ session.notes }}
+    </div>
+    {% endif %}
+
+    <!-- Attendance list -->
+    <div class="lpu-card fade-up-2">
+      <div class="lpu-card-header">
+        <span class="lpu-card-title">Attendance Record</span>
+        <span class="att-count-badge" id="attCount">{{ session.attendance_count }}</span>
+      </div>
+      <div id="attendanceList">
+        {% if attendances %}
+          {% for att in attendances %}
+          <div class="att-row">
+            <div class="att-avatar">{{ att.student.user.first_name|first }}{{ att.student.user.last_name|first }}</div>
+            <div class="att-name">{{ att.student.user.get_full_name }}</div>
+            <div style="font-size:11.5px;color:var(--slate);margin-right:12px;">{{ att.student.registration_no }}</div>
+            <div class="att-time">{{ att.marked_at|time:"g:i A" }}</div>
+            <span class="status-badge badge-present" style="font-size:10px;padding:2px 8px;">Present</span>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div style="padding:30px;text-align:center;color:var(--slate);font-size:13px;" id="emptyAtt">
+            No students have marked attendance yet.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- AI Suggestions -->
+    {% if suggestions %}
+    <div style="margin-top:20px;" class="fade-up-3">
+      <div style="font-family:'Playfair Display',serif;font-size:16px;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+        🤖 AI Scheduling Suggestions
+        <span style="font-size:11px;background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.3);color:var(--gold);border-radius:20px;padding:2px 9px;">AI Powered</span>
+      </div>
+      {% for sug in suggestions %}
+      <div class="ai-suggestion-card">
+        <div class="ai-score-circle">{{ sug.score }}</div>
+        <div style="flex:1;">
+          <div class="ai-sug-date">{{ sug.suggested_date|date:"D, d M Y" }}</div>
+          <div class="ai-sug-time">⏱ {{ sug.suggested_time|time:"g:i A" }}</div>
+          <div class="ai-sug-reason">{{ sug.reason }}</div>
+        </div>
+      </div>
+      {% endfor %}
+      <p style="font-size:11.5px;color:var(--slate);margin-top:8px;">
+        <i class="bi bi-info-circle"></i>
+        Scores are based on: gap from last session · time of day · faculty availability · day load balance.
+      </p>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- RIGHT COLUMN — Sticky Code Box -->
+  <div class="fade-up-1">
+    <div class="code-box">
+      <div class="code-box-label">Remedial Code</div>
+
+      <!-- Character display -->
+      <div class="code-chars">
+        {% for char in session.remedial_code %}
+        <div class="code-char {% if session.is_code_valid %}active-char{% endif %}">{{ char }}</div>
+        {% endfor %}
+      </div>
+
+      <!-- Status -->
+      <div class="code-status-row">
+        <span class="live-dot {% if session.is_code_valid %}active{% else %}idle{% endif %}" id="liveDot"></span>
+        <span id="codeStatusText">
+          {% if session.is_code_valid %}
+            <span class="status-live">Code is LIVE</span>
+          {% else %}
+            <span class="status-idle">Code not active</span>
+          {% endif %}
+        </span>
+      </div>
+
+      <!-- Countdown timer (shown when active) -->
+      <div class="countdown-wrap {% if session.is_code_valid %}visible{% endif %}" id="countdownWrap">
+        <div class="countdown-label">Time Remaining</div>
+        <div class="countdown-timer" id="countdownTimer">--:--</div>
+        <div class="countdown-bar-bg">
+          <div class="countdown-bar-fill" id="countdownBar" style="width:100%"></div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      {% if session.status != 'COMPLETED' and session.status != 'CANCELLED' %}
+      <div class="code-actions">
+        {% if not session.is_code_valid %}
+          <form method="post" action="{% url 'makeup:activate_code' session.id %}">
+            {% csrf_token %}
+            <select name="duration" class="duration-select">
+              <option value="15">Activate for 15 minutes</option>
+              <option value="30" selected>Activate for 30 minutes</option>
+              <option value="45">Activate for 45 minutes</option>
+              <option value="60">Activate for 60 minutes</option>
+            </select>
+            <button type="submit" class="code-btn activate">
+              <i class="bi bi-play-circle"></i> Activate Code Now
+            </button>
+          </form>
+        {% else %}
+          <form method="post" action="{% url 'makeup:deactivate_code' session.id %}">
+            {% csrf_token %}
+            <button type="submit" class="code-btn deactivate">
+              <i class="bi bi-stop-circle"></i> Close Attendance
+            </button>
+          </form>
+        {% endif %}
+
+        <form method="post" action="{% url 'makeup:regenerate_code' session.id %}"
+              onsubmit="return confirm('Generate a new code? The current code will stop working immediately.');">
+          {% csrf_token %}
+          <button type="submit" class="code-btn regen" style="width:100%;">
+            <i class="bi bi-arrow-clockwise"></i> New Code
+          </button>
+        </form>
+      </div>
+      {% endif %}
+
+      <div style="margin-top:14px;font-size:11px;color:rgba(247,244,238,0.25);line-height:1.5;">
+        Share this code with students. They enter it on their dashboard to mark attendance.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const sessionId  = {{ session.id }};
+  const isActive   = {{ session.is_code_valid|yesno:'true,false' }};
+  let totalSeconds = 0;
+  let maxSeconds   = 0;
+  let timer        = null;
+
+  {% if session.is_code_valid and session.code_expires_at %}
+  const expiresAt = new Date("{{ session.code_expires_at|date:'c' }}");
+  const now       = new Date();
+  totalSeconds    = Math.max(0, Math.floor((expiresAt - now) / 1000));
+  maxSeconds      = totalSeconds;
+  startCountdown();
+  {% endif %}
+
+  function startCountdown() {
+    updateDisplay();
+    timer = setInterval(() => {
+      totalSeconds = Math.max(0, totalSeconds - 1);
+      updateDisplay();
+      if (totalSeconds <= 0) {
+        clearInterval(timer);
+        document.getElementById('codeStatusText').innerHTML = '<span class="status-idle">Code expired</span>';
+        document.getElementById('liveDot').className = 'live-dot idle';
+        document.querySelectorAll('.code-char').forEach(c => c.classList.remove('active-char'));
+      }
+    }, 1000);
+  }
+
+  function updateDisplay() {
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    document.getElementById('countdownTimer').textContent =
+      String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+    const pct = maxSeconds > 0 ? (totalSeconds / maxSeconds * 100) : 0;
+    document.getElementById('countdownBar').style.width = pct + '%';
+    document.getElementById('countdownWrap').classList.add('visible');
+  }
+
+  // Poll for new attendances every 8 seconds while code is active
+  {% if session.is_code_valid %}
+  setInterval(() => {
+    fetch(`/makeup/api/status/{{ session.id }}/`)
+      .then(r => r.json())
+      .then(data => {
+        if (!data.active && totalSeconds <= 0) clearInterval(timer);
+      });
+  }, 8000);
+  {% endif %}
+</script>
+{% endblock %}
